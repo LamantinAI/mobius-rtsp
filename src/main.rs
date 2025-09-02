@@ -33,6 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let server = gstreamer_rtsp_server::RTSPServer::new();
+    server.set_address("0.0.0.0"); 
     server.set_service(&port);
 
     let mounts = server.mount_points().unwrap();
@@ -84,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mount_path = format!("/{}", stream_name);
                     mounts.add_factory(&mount_path, factory);
 
-                    println!("Added stream: rtsp://127.0.0.1:{}{}", port, mount_path);
+                    println!("Added stream: rtsp://0.0.0.0:{}{}", port, mount_path);
                     video_count += 1;
                 }
             }

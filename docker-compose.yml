@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  mobius-rtsp:
+    build:
+      context: .
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "8554:8554"
+    volumes:
+      - ./videos/:/mobius/videos
