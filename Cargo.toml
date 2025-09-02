@@ -1,0 +1,16 @@
+[package]
+name = "mobius-rtsp"
+version = "0.1.0"
+edition = "2024"
+authors = ["GrumpyChubbyCat lamantin-ai@yandex.ru"]
+
+[profile.release]
+lto = true
+opt-level = 3
+debug = true
+panic = 'unwind'
+
+[dependencies]
+glib = "0.21.0"
+gstreamer = "0.24.0"
+gstreamer-rtsp-server = "0.24.1"

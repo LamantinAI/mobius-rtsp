@@ -1,0 +1,4 @@
+/target
+
+videos/*
+!videos/.gitkeep
