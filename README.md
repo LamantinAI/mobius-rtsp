@@ -37,6 +37,7 @@ The following GStreamer libraries and plugins are required:
 - gstreamer1.0-plugins-base
 - gstreamer1.0-plugins-good
 - gstreamer1.0-plugins-bad
+- gstreamer1.0-plugins-ugly
 - gstreamer1.0-x
 - gstreamer1.0-tools
 
@@ -68,6 +69,7 @@ The server can be configured using environment variables:
 |----------|---------|-------------|
 | `MOBIUS_PORT` | 8554 | RTSP server port |
 | `MOBIUS_SHARED` | true | Individual stream per client (false) or shared stream (true) |
+| `MOBIUS_PREFIX` | mobius-stream | RTSP server resources prefix |
 
 ### Configuration Examples
 
@@ -79,6 +81,11 @@ MOBIUS_PORT=9000 cargo run
 **Individual streams:**
 ```bash
 MOBIUS_SHARED=false cargo run
+```
+
+**Resources prefix:**
+```bash
+MOBIUS_PREFIX=custom-stream cargo run
 ```
 
 **Docker with custom configuration:**
