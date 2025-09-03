@@ -11,7 +11,7 @@ mobius-rtsp is a GStreamer-based RTSP server for infinite video files streaming.
 
 videofile: videos/9c0a140d548c8313e7719b7590d029dc.mp4
 
-rtsp stream: rtsp://0.0.0.0:8554/9c0a140d548c8313e7719b7590d029dc
+rtsp stream: rtsp://0.0.0.0:8554/mobius-stream/9c0a140d548c8313e7719b7590d029dc
 
 **Supported video formats:**
    - mp4
