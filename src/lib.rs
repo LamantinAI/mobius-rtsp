@@ -14,7 +14,7 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
 
     let server = gstreamer_rtsp_server::RTSPServer::new();
     server.set_address("0.0.0.0");
-    server.set_service(&config.listen_port);
+    server.set_service(&config.port.to_string());
 
     let mounts = server.mount_points().unwrap();
 
@@ -67,7 +67,7 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
 
                     println!(
                         "Added stream: rtsp://0.0.0.0:{}{}",
-                        config.listen_port, mount_path
+                        config.port, mount_path
                     );
                     video_count += 1;
                 }
@@ -84,7 +84,7 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
 
     server.attach(None)?;
 
-    println!("\nRTSP Server running on port {}", config.listen_port);
+    println!("\nRTSP Server running on port {}", config.port);
     println!("Press Ctrl+C to stop");
 
     let main_loop = glib::MainLoop::new(None, false);

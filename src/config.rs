@@ -4,7 +4,7 @@ use serde::Deserialize;
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct MobiusConfig {
     #[serde(default = "default_port")]
-    pub listen_port: &'static str,
+    pub port: u16,
     #[serde(default = "prefix")]
     pub prefix: &'static str,
     #[serde(default = "shared")]
@@ -21,8 +21,8 @@ impl MobiusConfig {
     }
 }
 
-fn default_port() -> &'static str {
-    "8554"
+fn default_port() -> u16 {
+    8554
 }
 
 fn prefix() -> &'static str {
