@@ -12,13 +12,8 @@ pub const SUPPORTED_EXTENSIONS: &[&str] = &[
 pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
     gst::init()?;
 
-    let server = gstreamer_rtsp_server::RTSPServer::new();
-    server.set_address("0.0.0.0");
-    server.set_service(&config.port.to_string());
-
-    let mounts = server.mount_points().unwrap();
-
-    let videos_dir = "./videos";
+    let videos_dir = "./data/videos";
+    let segments_dir = Path::new("./data/segments");
 
     if !Path::new(videos_dir).exists() {
         eprintln!("Error: Directory not found {}", videos_dir);
@@ -30,49 +25,82 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    if config.infinite {
+        if !segments_dir.exists() {
+            std::fs::create_dir_all(segments_dir)?;
+        }
+
+        for entry in fs::read_dir(videos_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if !path.is_file() {
+                continue;
+            }
+
+            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                if !SUPPORTED_EXTENSIONS.contains(&ext.to_lowercase().as_str()) {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+
+            let stem = path.file_stem().unwrap().to_string_lossy().to_string();
+            let output_segment_dit = segments_dir.join(&stem);
+
+            slice_video_to_segments(&path, &output_segment_dit)?;
+        }
+    }
+
+    let server = gstreamer_rtsp_server::RTSPServer::new();
+    server.set_address("0.0.0.0");
+    server.set_service(&config.port.to_string());
+
+    let mounts = server.mount_points().unwrap();
+
     let mut video_count: u8 = 0;
 
     for entry in fs::read_dir(videos_dir)? {
         let entry = entry?;
         let path = entry.path();
 
-        if path.is_file() {
-            if let Some(extension) = path.extension() {
-                let ext = extension.to_string_lossy().to_lowercase();
-
-                if SUPPORTED_EXTENSIONS.contains(&ext.as_str()) {
-                    let file_name = entry.file_name();
-                    let file_name_str = file_name.to_string_lossy();
-
-                    // Remove the extension for the stream name
-                    let stream_name =
-                        if let Some(stem) = Path::new(file_name_str.as_ref()).file_stem() {
-                            stem.to_string_lossy().to_string()
-                        } else {
-                            file_name_str.to_string()
-                        };
-
-                    // Universal pipeline: decoding + encoding in H.264
-                    let stream_pipeline_str = format!(
-                        "filesrc location={} ! decodebin ! videoconvert ! video/x-raw,format=I420 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay name=pay0 pt=96",
-                        path.to_string_lossy()
-                    );
-
-                    let factory = gstreamer_rtsp_server::RTSPMediaFactory::new();
-                    factory.set_launch(&stream_pipeline_str);
-                    factory.set_shared(config.shared);
-
-                    let mount_path = format!("/{}/{}", config.prefix, stream_name);
-                    mounts.add_factory(&mount_path, factory);
-
-                    println!(
-                        "Added stream: rtsp://0.0.0.0:{}{}",
-                        config.port, mount_path
-                    );
-                    video_count += 1;
-                }
-            }
+        if !path.is_file() {
+            continue;
         }
+
+        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+            if !SUPPORTED_EXTENSIONS.contains(&ext.to_lowercase().as_str()) {
+                continue;
+            }
+        } else {
+            continue;
+        }
+
+        let stem = path.file_stem().unwrap().to_string_lossy().to_string();
+        let mount_path = format!("/{}/{}", config.prefix, stem);
+        
+        // Сonfiguring the factory string
+        let stream_pipeline_str = if config.infinite {
+            let segment_pattern = segments_dir.join(&stem).join("segment%03d.ts");
+            format!(
+                "multifilesrc location={} loop=true ! tsparse ! tsdemux ! h264parse ! rtph264pay name=pay0 pt=96",
+                segment_pattern.to_string_lossy()
+            )
+        } else {
+            format!(
+                "filesrc location={} ! decodebin ! videoconvert ! video/x-raw,format=I420 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay name=pay0 pt=96",
+                path.to_string_lossy()
+            )
+        };
+
+        let factory = gstreamer_rtsp_server::RTSPMediaFactory::new();
+        factory.set_launch(&stream_pipeline_str);
+        factory.set_shared(config.shared);
+
+        mounts.add_factory(&mount_path, factory);
+        println!("Added stream: rtsp://0.0.0.0:{}{}", config.port, mount_path);
+        video_count += 1;
     }
 
     if video_count == 0 {
@@ -90,4 +118,83 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
     let main_loop = glib::MainLoop::new(None, false);
     main_loop.run();
     return Ok(());
+}
+
+fn slice_video_to_segments(
+    video_path: &Path,
+    output_dir: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Check our video segments dir
+    if !output_dir.exists() {
+        std::fs::create_dir_all(output_dir)?;
+    }
+
+    // Check if there are any segments
+    if output_dir.read_dir()?.next().is_some() {
+        println!("Segments already exist in {:?}", output_dir);
+        return Ok(());
+    }
+
+    println!("Slicing {:?} into segments in {:?}", video_path, output_dir);
+
+    // Сonfiguring the slicer string
+    let location_pattern = output_dir.join("segment%03d.ts");
+    let pipeline_str = format!(
+        "filesrc location={} ! decodebin ! video/x-raw ! videoconvert 
+        ! x264enc key-int-max=30 bframes=0 speed-preset=ultrafast tune=zerolatency ! h264parse 
+        ! splitmuxsink muxer=\"mpegtsmux alignment=7\" max-size-time=1000000000 location={}",
+        video_path.to_string_lossy(),
+        location_pattern.to_string_lossy()
+    );
+
+    // Creating slicer pipeline
+    let pipeline = gst::parse::launch(&pipeline_str)
+        .map_err(|e| format!("Failed to parse pipeline: {}", e))?;
+
+    let pipeline = pipeline
+        .dynamic_cast::<gst::Pipeline>()
+        .map_err(|_| "Parsed element is not a Pipeline")?;
+
+    // Getting bus of the pipeline
+    let bus = pipeline.bus().ok_or("Pipeline has no bus")?;
+
+    // Launching the pipeline
+    pipeline
+        .set_state(gst::State::Playing)
+        .map_err(|e| format!("Failed to set pipeline to Playing: {:?}", e))?;
+
+    let mut eos_received = false;
+
+    // Waiting until EOS or Error
+    while let Some(msg) = bus.timed_pop(gst::ClockTime::from_mseconds(100)) {
+        use gst::MessageView;
+        match msg.view() {
+            MessageView::Eos(..) => {
+                println!("Reached end of stream for {:?}", video_path);
+                eos_received = true;
+                break;
+            }
+            MessageView::Error(err) => {
+                eprintln!(
+                    "Error in slicing pipeline: {} (debug: {:?})",
+                    err.error(),
+                    err.debug()
+                );
+                pipeline.set_state(gst::State::Null)?;
+                return Err("Error during video slicing".into());
+            }
+            _ => continue,
+        }
+    }
+
+    // If you haven't received EOS, there might be a timeout or interruption
+    if !eos_received {
+        eprintln!("Warning: Did not receive EOS for {:?}", video_path);
+    }
+
+    // Stopping the pipeline correctly
+    pipeline.set_state(gst::State::Null)?;
+
+    println!("Slicing completed for {:?}", video_path);
+    Ok(())
 }

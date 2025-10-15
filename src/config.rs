@@ -9,6 +9,8 @@ pub struct MobiusConfig {
     pub prefix: &'static str,
     #[serde(default = "shared")]
     pub shared: bool,
+    #[serde(default = "infinite")]
+    pub infinite: bool
 }
 
 impl MobiusConfig {
@@ -30,5 +32,9 @@ fn prefix() -> &'static str {
 }
 
 fn shared() -> bool {
+    true
+}
+
+fn infinite() -> bool {
     true
 }

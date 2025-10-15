@@ -1,5 +1,8 @@
 /target
 .env
 
-videos/*
-!videos/.gitkeep
+data/segments/*
+data/videos/*
+
+!data/videos/.gitkeep
+!data/segments/.gitkeep
