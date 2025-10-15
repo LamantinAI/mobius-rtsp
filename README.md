@@ -4,12 +4,12 @@ mobius-rtsp is a GStreamer-based RTSP server for infinite video files streaming.
 
 **How It Works**
 
-1. Place supported video files in the `videos` folder
+1. Place supported video files in the `data/videos` folder
 2. On startup, the server reads video filenames (without extensions) and adds them as RTSP streams
 
 **Example:**
 
-videofile: videos/9c0a140d548c8313e7719b7590d029dc.mp4
+videofile: data/videos/9c0a140d548c8313e7719b7590d029dc.mp4
 
 rtsp stream: rtsp://0.0.0.0:8554/mobius-stream/9c0a140d548c8313e7719b7590d029dc
 
@@ -70,6 +70,7 @@ The server can be configured using environment variables:
 | `MOBIUS_PORT` | 8554 | RTSP server port |
 | `MOBIUS_SHARED` | true | Individual stream per client (false) or shared stream (true) |
 | `MOBIUS_PREFIX` | mobius-stream | RTSP server resources prefix |
+| `MOBIUS_INFINITE` | true | Streaming without EOS message |
 
 ### Configuration Examples
 
@@ -86,6 +87,11 @@ MOBIUS_SHARED=false cargo run
 **Resources prefix:**
 ```bash
 MOBIUS_PREFIX=custom-stream cargo run
+```
+
+**Infinite streaming mode:**
+```bash
+MOBIUS_INFINITE=true cargo run
 ```
 
 **Docker with custom configuration:**
