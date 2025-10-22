@@ -163,15 +163,12 @@ fn slice_video_to_segments(
         .set_state(gst::State::Playing)
         .map_err(|e| format!("Failed to set pipeline to Playing: {:?}", e))?;
 
-    let mut eos_received = false;
-
     // Waiting until EOS or Error
-    while let Some(msg) = bus.timed_pop(gst::ClockTime::from_mseconds(100)) {
+    while let Some(msg) = bus.timed_pop(gst::ClockTime::NONE) {
         use gst::MessageView;
         match msg.view() {
             MessageView::Eos(..) => {
                 println!("Reached end of stream for {:?}", video_path);
-                eos_received = true;
                 break;
             }
             MessageView::Error(err) => {
@@ -185,11 +182,6 @@ fn slice_video_to_segments(
             }
             _ => continue,
         }
-    }
-
-    // If you haven't received EOS, there might be a timeout or interruption
-    if !eos_received {
-        eprintln!("Warning: Did not receive EOS for {:?}", video_path);
     }
 
     // Stopping the pipeline correctly
