@@ -10,7 +10,21 @@ pub struct MobiusConfig {
     #[serde(default = "shared")]
     pub shared: bool,
     #[serde(default = "infinite")]
-    pub infinite: bool
+    pub infinite: bool,
+    #[serde(default = "corrupted")]
+    pub corrupted: bool,
+    #[serde(default = "min_disconnected_time")]
+    pub min_disconnected_time: u64,
+    #[serde(default = "max_disconnected_time")]
+    pub max_disconnected_time: u64,
+    #[serde(default = "min_time_between_break")]
+    pub min_time_between_break: u64,
+    #[serde(default = "max_time_between_break")]
+    pub max_time_between_break: u64,
+    #[serde(default = "min_drop_probability")]
+    pub min_drop_probability: f32,
+    #[serde(default = "max_drop_probability")]
+    pub max_drop_probability: f32,
 }
 
 impl MobiusConfig {
@@ -37,4 +51,32 @@ fn shared() -> bool {
 
 fn infinite() -> bool {
     true
+}
+
+fn corrupted() -> bool {
+    false
+}
+
+fn min_disconnected_time() -> u64 {
+    10
+}
+
+fn max_disconnected_time() -> u64 {
+    30
+}
+
+fn min_time_between_break() -> u64 {
+    10
+}
+
+fn max_time_between_break() -> u64 {
+    30
+}
+
+fn min_drop_probability() -> f32 {
+    0.05
+}
+
+fn max_drop_probability() -> f32 {
+    0.9
 }

@@ -1,9 +1,10 @@
 pub mod config;
 use crate::config::MobiusConfig;
-use std::{fs, path::Path};
+use std::{fs, path::Path, time::Duration};
 
 use gstreamer as gst;
 use gstreamer_rtsp_server::prelude::*;
+use rand::RngExt;
 
 pub const SUPPORTED_EXTENSIONS: &[&str] = &[
     "mp4", "avi", "mkv", "mov", "webm", "flv", "wmv", "m4v", "3gp",
@@ -84,7 +85,7 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
         let stream_pipeline_str = if config.infinite {
             let segment_pattern = segments_dir.join(&stem).join("segment%03d.ts");
             format!(
-                "multifilesrc location={} loop=true ! tsparse ! tsdemux ! h264parse ! rtph264pay name=pay0 pt=96",
+                "multifilesrc location={} loop=true ! tsparse ! tsdemux ! h264parse ! netsim name=glitcher ! rtph264pay name=pay0 pt=96",
                 segment_pattern.to_string_lossy()
             )
         } else {
@@ -96,6 +97,49 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
 
         let factory = gstreamer_rtsp_server::RTSPMediaFactory::new();
         factory.set_launch(&stream_pipeline_str);
+        if config.corrupted {
+            factory.connect_media_configure(move |_, media| {
+                // Get the element from the pipeline by its name
+                let element = media.element();
+                let bin = element.dynamic_cast::<gstreamer::Bin>().unwrap();
+                let netsim = bin.by_name("glitcher").expect("netsim element not found");
+
+                // Spawn the sabotage thread
+                std::thread::spawn(move || {
+                    let mut rng = rand::rng();
+                    loop {
+                        // Wait for a random interval before the next connection break
+                        let sleep_time = rng.random_range(
+                            config.min_time_between_break..config.max_time_between_break,
+                        );
+                        std::thread::sleep(Duration::from_secs(sleep_time));
+
+                        // Simulate network outage
+                        println!(
+                            "Network outage started. Setting drop-probability to: {}",
+                            config.max_drop_probability
+                        );
+
+                        netsim.set_property("drop-probability", config.max_drop_probability as f32);
+
+                        // Keep the connection down for a random duration
+                        let down_time = rng.random_range(
+                            config.min_disconnected_time..config.max_disconnected_time,
+                        );
+                        std::thread::sleep(Duration::from_secs(down_time));
+
+                        // Restore connection with minimal residual noise
+                        println!(
+                            "Connection restored. Setting drop-probability to: {}",
+                            config.min_drop_probability
+                        );
+
+                        netsim.set_property("drop-probability", config.min_drop_probability as f32);
+                    }
+                });
+            });
+        }
+
         factory.set_shared(config.shared);
 
         mounts.add_factory(&mount_path, factory);

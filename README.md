@@ -65,12 +65,26 @@ docker compose up
 
 The server can be configured using environment variables:
 
+### Core Settings
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MOBIUS_PORT` | 8554 | RTSP server port |
 | `MOBIUS_SHARED` | true | Individual stream per client (false) or shared stream (true) |
 | `MOBIUS_PREFIX` | mobius-stream | RTSP server resources prefix |
 | `MOBIUS_INFINITE` | true | Streaming without EOS message |
+
+### Network Corruption
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `MOBIUS_CORRUPTED` | `false` | Enable/Disable the dynamic network sabotage thread |
+| `MOBIUS_MIN_DROP_PROBABILITY` | `0.05` | Packet loss probability during "normal" operation (0.0 to 1.0) |
+| `MOBIUS_MAX_DROP_PROBABILITY` | `0.9` | Packet loss probability during "outage" (0.9 is recommended for glitches) |
+| `MOBIUS_MIN_TIME_BETWEEN_BREAK` | `10` | Minimum uptime (seconds) before an outage occurs |
+| `MOBIUS_MAX_TIME_BETWEEN_BREAK` | `30` | Maximum uptime (seconds) before an outage occurs |
+| `MOBIUS_MIN_DISCONNECTED_TIME` | `10` | Minimum duration (seconds) of the network outage |
+| `MOBIUS_MAX_DISCONNECTED_TIME` | `30` | Maximum duration (seconds) of the network outage |
 
 ### Configuration Examples
 
