@@ -6,3 +6,7 @@ data/videos/*
 
 !data/videos/.gitkeep
 !data/segments/.gitkeep
+
+*.mp4
+*.mkv
+*.webm

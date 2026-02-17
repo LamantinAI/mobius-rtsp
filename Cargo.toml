@@ -11,7 +11,7 @@ debug = true
 panic = 'unwind'
 
 [dependencies]
-config = "0.15.15"
+config = "0.15.19"
 serde =  { version = "1.0.219", features = ["derive"] }
 glib = "0.21.0"
 gstreamer = "0.24.0"

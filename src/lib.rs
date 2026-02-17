@@ -79,7 +79,7 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
 
         let stem = path.file_stem().unwrap().to_string_lossy().to_string();
         let mount_path = format!("/{}/{}", config.prefix, stem);
-        
+
         // Сonfiguring the factory string
         let stream_pipeline_str = if config.infinite {
             let segment_pattern = segments_dir.join(&stem).join("segment%03d.ts");
@@ -89,7 +89,7 @@ pub fn run(config: MobiusConfig) -> Result<(), Box<dyn std::error::Error>> {
             )
         } else {
             format!(
-                "filesrc location={} ! decodebin ! videoconvert ! video/x-raw,format=I420 ! x264enc speed-preset=ultrafast tune=zerolatency ! rtph264pay name=pay0 pt=96",
+                "filesrc location={} ! decodebin ! videoconvert ! video/x-raw,format=I420 ! openh264enc complexity=high multi-thread=4 ! rtph264pay name=pay0 pt=96",
                 path.to_string_lossy()
             )
         };
@@ -140,9 +140,17 @@ fn slice_video_to_segments(
     // Сonfiguring the slicer string
     let location_pattern = output_dir.join("segment%03d.ts");
     let pipeline_str = format!(
-        "filesrc location={} ! decodebin ! video/x-raw ! videoconvert 
-        ! x264enc key-int-max=30 bframes=0 speed-preset=ultrafast tune=zerolatency ! h264parse 
-        ! splitmuxsink muxer=\"mpegtsmux alignment=7\" max-size-time=1000000000 location={}",
+        "filesrc location={} ! decodebin ! videoconvert ! videoscale ! \
+        video/x-raw,format=I420,width=1280,height=720,framerate=30/1 ! \
+        openh264enc \
+            bitrate=6000000 \
+            gop-size=30 \
+            usage-type=camera \
+            rate-control=buffer \
+            complexity=high \
+            multi-thread=4 \
+        ! h264parse ! \
+        splitmuxsink muxer=\"mpegtsmux alignment=7\" max-size-time=1000000000 location={}",
         video_path.to_string_lossy(),
         location_pattern.to_string_lossy()
     );
