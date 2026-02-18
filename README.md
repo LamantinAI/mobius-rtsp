@@ -121,3 +121,4 @@ docker run -p 9000:9000 -e MOBIUS_PORT=9000 -e MOBIUS_SHARED=false -v ./videos:/
 - **Docker support**: Ready-to-use Docker configuration
 - **Low latency**: Optimized H.264 encoding with ultrafast presets
 - **Cross-platform**: Works on Linux, macOS, and Windows
+- **Network corruption**: Simulating a real camera by a stream sabotage
