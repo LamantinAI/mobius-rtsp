@@ -9,4 +9,4 @@ services:
     ports:
       - "8554:8554"
     volumes:
-      - .data/:/mobius/data
+      - ./data/:/mobius/data
